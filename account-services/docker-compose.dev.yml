@@ -1,0 +1,57 @@
+
+  
+version: '3'
+networks:
+  accounts:
+    external: true
+services:
+  app:
+    container_name: 'accounts-services'
+    image: node:lts-alpine
+    working_dir: /usr/src/app
+    restart: always
+    command: yarn start:dev
+    ports:
+      - '${APP_PORT}:${APP_PORT}'
+    environment:
+      - APP_PORT=${APP_PORT}
+    volumes:
+      - ./:/usr/src/app
+    networks:
+      - accounts
+    depends_on:
+      - mongo
+      - rabbitmq
+    links:
+      - mongo
+      - rabbitmq
+  mongo:
+    container_name: 'accounts-dev-db'
+    image: mongo
+    restart: always
+    command: mongod --port ${DB_PORT}
+    ports:
+      - '${DB_PORT}:${DB_PORT}'
+    volumes:
+      - ./.docker/db/mongodb:/data/db
+      - ./.docker/db/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: '${DB_USER}'
+      MONGO_INITDB_ROOT_PASSWORD: '${DB_PASS}'
+      MONGO_INITDB_DATABASE: '${DB_NAME}'
+    networks:
+      - accounts
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    volumes:
+      - /var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: 'admin'
+      RABBITMQ_DEFAULT_PASS: 'admin'
+    networks:
+      - accounts
